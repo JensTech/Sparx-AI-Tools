@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Sparx Reader AI",
+  "version": "1.0",
+  "permissions": ["activeTab", "scripting", "clipboardWrite"],
+  "content_scripts": [
+    {
+      "matches": ["https://*.sparx-learning.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
