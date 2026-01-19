@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Sparx Reader AI",
-    "version": "2026.01.19",
+    "version": "19.1.2026",
     "permissions": [
         "activeTab",
         "scripting",
