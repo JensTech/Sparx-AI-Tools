@@ -1,19 +1,28 @@
+![](https://jenstech.qzz.io/cdn/img/Sparx/SparxLogo-128x128.png)
+
 # Sparx Reader AI
 
-Sparx reader ai is a super simple chrome 
-extension to aid with your homework.
+**Sparx Reader AI** is a super simple Chrome extension designed to help with homework by preparing web content for AI analysis.
 
-Sparx Reader AI is *NOT* an LLM in itself, it
-instead copies the content of the page extract
-and prepares it to be sent to an LLM. It also
-prepares the questions with prompts injected
-into each to tell the ai what to do.
+It is **not** an LLM itself. Instead, it copies the content of a page and prepares it to be sent to an LLM. It also formats questions with prompts so the AI knows exactly what to do.
 
-### What LLM do I use?
-Based on success rates (what I have tried currently)
-- [Gemini by google](https://gemini.google.com) has approximately 97% success rate
-- [Chatgpt](https://chatgpt.com/?temporary-chat=true) seems to have a lower success rate with it getting answers wrong more often.
 
-If you try another LLM, feel free to make an issue and i'll add it to this list!
+## Which LLM Should I Use?
 
-This is a work in progress, so if you see this, you likely went back in the commit history.
+Based on my testing so far:
+
+* **[Gemini by Google](https://gemini.google.com)** – approximately 97% success rate
+* **[ChatGPT](https://chatgpt.com/?temporary-chat=true)** – slightly lower success rate, more prone to errors
+
+If you try another LLM, feel free to open an [issue](https://github.com/JensTech/Sparx-AI-Tools/issues/new) and I’ll add it to this list!
+
+
+## Installation
+1. Since it is a chrome extension. Installation is easy. Download the zip file in the [releases](https://github.com/JensTech/Sparx-AI-Tools/releases/latest) tab.
+2. Unzip the folder. **IT WILL NOT INSTALL ZIPPED**
+3. Go to [chrome://extensions](chrome://extensions)
+   ![Chrome extensions window](/cdn/img/Tutorial1.png)
+   i. Turn on developer mode <br>
+   ii. Load the folder you downloaded. **NOT A ZIP**
+   iii. Enable it
+4. Use it! Enjoy :)
