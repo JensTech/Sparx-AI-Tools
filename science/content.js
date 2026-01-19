@@ -1,2 +1,9 @@
-console.log("I haven't made science yet.")
-console.log("okay?")
+/*
+    ----------------------------------------------------
+    - Sparx Science has not currently been made and is -
+    -   not functional. Stay tuned for later updates   -
+    ----------------------------------------------------
+*/
+
+console.warn("Sparx Science AI is not functional")
+console.warn("Check for updates in the meanwhile")

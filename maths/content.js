@@ -1,4 +1,9 @@
-// not yet bud
+/*
+    ----------------------------------------------------
+    -  Sparx Maths has not currently been made and is  -
+    -   not functional. Stay tuned for later updates   -
+    ----------------------------------------------------
+*/
 
-console.log("I haven't made maths yet.")
-console.log("Come back i guess")
+console.warn("Sparx Maths AI is not functional  ")
+console.warn("Check for updates in the meanwhile")
