@@ -9,6 +9,9 @@
         "storage",
         "notifications"
     ],
+    "icons": {
+        "128": "cdn/img/logo.png"
+    },
     "background": {
         "service_worker": "api/sw.js"
     },
