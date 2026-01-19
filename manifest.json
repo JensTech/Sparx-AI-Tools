@@ -5,8 +5,13 @@
     "permissions": [
         "activeTab",
         "scripting",
-        "clipboardWrite"
+        "clipboardWrite",
+        "storage",
+        "notifications"
     ],
+    "background": {
+        "service_worker": "api/sw.js"
+    },
     "content_scripts": [
         {
             "matches": [
