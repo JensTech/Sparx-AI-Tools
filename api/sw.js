@@ -1,4 +1,4 @@
-const VERSION_CHECK_URL = 'https://cdn.jsdelivr.net/gh/JensTech/Sparx-AI-Tools@main/api/version.json';
+const VERSION_CHECK_URL = 'https://cdn.jsdelivr.net/gh/JensTech/jenstech.github.io@main/Sparx/api/version.json';
 const CHECK_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
 // Get the version from manifest
