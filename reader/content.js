@@ -26,7 +26,7 @@ if (window.location.hostname.endsWith('sparx-learning.com')) { // idk how you'd 
     btn.title = 'Copy book text';
 
     const icon = document.createElement('img');
-    icon.src = chrome.runtime.getURL('cdn/img/clip.svg'); // dirty way to get an svg :/
+    icon.src = 'https://cdn.jsdelivr.net/gh/JensTech/Sparx-AI-Tools@main/cdn/img/clip.svg'; // dirty way to get an svg :/
     icon.alt = '';
     icon.draggable = false;
     icon.width = 18;
@@ -47,9 +47,9 @@ if (window.location.hostname.endsWith('sparx-learning.com')) { // idk how you'd 
 
       navigator.clipboard.writeText(finalText)
         .then(() => {
-            icon.src = chrome.runtime.getURL('cdn/img/tick.svg'); // give user feedback, else they'll think it broke
+            icon.src = 'https://cdn.jsdelivr.net/gh/JensTech/Sparx-AI-Tools@main/cdn/img/tick.svg'; // give user feedback, else they'll think it broke
             setTimeout(() => {
-            icon.src = chrome.runtime.getURL('cdn/img/clip.svg'); // normal again
+            icon.src = 'https://cdn.jsdelivr.net/gh/JensTech/Sparx-AI-Tools@main/cdn/img/clip.svg'; // normal again
             }, 1000);
         })
         .catch(console.error);
@@ -94,9 +94,9 @@ if (window.location.hostname.endsWith('sparx-learning.com')) { // idk how you'd 
 
       navigator.clipboard.writeText(formatted)
         .then(() => {
-            icon.src = chrome.runtime.getURL('cdn/img/tick.svg');
+            icon.src = 'https://cdn.jsdelivr.net/gh/JensTech/Sparx-AI-Tools@main/cdn/img/tick.svg';
             setTimeout(() => {
-            icon.src = chrome.runtime.getURL('cdn/img/clip.svg');
+            icon.src = 'https://cdn.jsdelivr.net/gh/JensTech/Sparx-AI-Tools@main/cdn/img/clip.svg';
             }, 1000);
         })
         .catch(console.error);

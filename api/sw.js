@@ -1,7 +1,6 @@
-const VERSION_CHECK_URL = 'https://cdn.jsdelivr.net/gh/JensTech/jenstech.github.io@main/Sparx/api/version.json';
+const VERSION_CHECK_URL = 'https://cdn.jsdelivr.net/gh/JensTech/Sparx-AI-Tools@main/api/version.json';
 const CHECK_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
-// Get the version from manifest
 const LOCAL_VERSION = chrome.runtime.getManifest().version;
 
 async function checkForUpdate() {
@@ -13,17 +12,22 @@ async function checkForUpdate() {
         const latest = data.latest;
 
         if (latest !== LOCAL_VERSION) {
-            // Check if we already notified
             const storage = await chrome.storage.local.get('notifiedVersion');
             if (storage.notifiedVersion !== latest) {
-                // Show notification
-                chrome.notifications.create({
+                // Show notification with click listener
+                chrome.notifications.create('update-notification', {
                     type: 'basic',
                     title: 'Sparx-AI-Tools',
-                    message: `New update installed: version ${latest}`
+                    message: `New version available: ${latest}. Click to update.`,
+                    iconUrl: 'https://cdn.jsdelivr.net/gh/JensTech/jenstech.github.io@main/cdn/img/SparxLogo.png'
                 });
 
-                // Remember we notified
+                chrome.notifications.onClicked.addListener((id) => {
+                    if (id === 'update-notification') {
+                        chrome.tabs.create({ url: 'https://github.com/JensTech/Sparx-AI-Tools/releases/latest' });
+                    }
+                });
+
                 await chrome.storage.local.set({ notifiedVersion: latest });
             }
         }
