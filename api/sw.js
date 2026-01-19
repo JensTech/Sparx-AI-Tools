@@ -1,4 +1,4 @@
-const VERSION_CHECK_URL = 'https://cdn.jsdelivr.net/gh/JensTech/Sparx-AI-Tools@main/api/version.json';
+const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/JensTech/Sparx-AI-Tools/refs/heads/main/api/version.json';
 const CHECK_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
 const LOCAL_VERSION = chrome.runtime.getManifest().version;
@@ -30,6 +30,8 @@ async function checkForUpdate() {
 
                 await chrome.storage.local.set({ notifiedVersion: latest });
             }
+        } else {
+            await chrome.storage.local.set({ notifiedVersion: latest });
         }
     } catch (err) {
         console.error('Version check failed', err);
