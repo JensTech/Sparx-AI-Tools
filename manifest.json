@@ -1,12 +1,46 @@
 {
-  "manifest_version": 3,
-  "name": "Sparx Reader AI",
-  "version": "1.0",
-  "permissions": ["activeTab", "scripting", "clipboardWrite"],
-  "content_scripts": [
-    {
-      "matches": ["https://*.sparx-learning.com/*"],
-      "js": ["content.js"]
-    }
-  ]
+    "manifest_version": 3,
+    "name": "Sparx Reader AI",
+    "version": "2026.01.19",
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "clipboardWrite"
+    ],
+    "content_scripts": [
+        {
+            "matches": [
+                "https://maths.sparx-learning.com/*"
+            ],
+            "js": [
+                "maths/content.js"
+            ]
+        },
+        {
+            "matches": [
+                "https://reader.sparx-learning.com/*"
+            ],
+            "js": [
+                "reader/content.js"
+            ]
+        },
+        {
+            "matches": [
+                "https://science.sparx-learning.com/*"
+            ],
+            "js": [
+                "science/content.js"
+            ]
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "cdn/img/*.svg"
+            ],
+            "matches": [
+                "https://*.sparx-learning.com/*"
+            ]
+        }
+    ]
 }
