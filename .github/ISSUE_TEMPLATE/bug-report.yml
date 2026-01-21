@@ -1,0 +1,59 @@
+name: Bug Report
+description: Report an issue or bug
+title: "[Bug]: "
+labels:
+  - bug
+assignees:
+  - "JensTech"
+body:
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Please confirm
+      options:
+        - label: I have checked the issues for duplicates
+          required: true
+        - label: I will use this form for legitimate issues
+          required: true
+        - label: I mindlessly checked all the boxes without reading
+          required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Issue Description
+      description: Clearly describe the problem
+      placeholder: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can I reproduce the issue?
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, version, browser, etc
+      placeholder: |
+        OS:
+        Version:
+    validations:
+      required: false
