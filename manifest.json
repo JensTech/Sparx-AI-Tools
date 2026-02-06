@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Sparx AI Tools",
-    "version": "06.02.2026",
+    "version": "6.2.2026",
     "permissions": [
         "activeTab",
         "scripting",
