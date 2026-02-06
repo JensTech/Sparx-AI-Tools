@@ -1,8 +1,5 @@
 .book-copy-btn-book,
 .book-copy-btn-question {
-    position: absolute;
-    top: 10px;
-    right: 10px;
     z-index: 1000;
 
     width: 32px;
@@ -23,4 +20,16 @@
     border-radius: 8px;
 
     box-shadow: 0 2px 6px #00000026;
+}
+
+.book-copy-btn-book {
+    position: fixed;
+    top: 75px;
+    right: 30px;
+}
+
+.book-copy-btn-question {
+    position: absolute;
+    top: 10px;
+    right: 10px;
 }
