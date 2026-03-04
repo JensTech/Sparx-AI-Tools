@@ -4,10 +4,14 @@
     "version": "6.2.2026",
     "permissions": [
         "activeTab",
+        "tabs",
         "scripting",
         "clipboardWrite",
         "storage",
         "notifications"
+    ],
+    "host_permissions": [
+        "https://gemini.google.com/*"
     ],
     "icons": {
         "128": "cdn/img/logo.png"
@@ -44,7 +48,8 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "cdn/img/*.svg"
+                "cdn/img/*.svg",
+                "cdn/img/*.png"
             ],
             "matches": [
                 "https://*.sparx-learning.com/*"
