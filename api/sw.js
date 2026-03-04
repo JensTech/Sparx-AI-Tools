@@ -112,10 +112,25 @@ async function getOrCreateGeminiTab() {
     return created;
 }
 
-function executeGeminiPrompt(tabId, prompt, settings, requestId) {
+function normalizeScienceImages(images) {
+    if (!Array.isArray(images)) return [];
+    const seen = new Set();
+    const out = [];
+    for (const raw of images) {
+        const url = String(raw || '').trim();
+        if (!url || seen.has(url)) continue;
+        seen.add(url);
+        out.push(url);
+        if (out.length >= 4) break;
+    }
+    return out;
+}
+
+function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
     return new Promise((resolve, reject) => {
         const startMarker = requestId ? `${SAI_START_FLAG}:${requestId}` : SAI_START_FLAG;
         const endMarker = requestId ? `${SAI_END_FLAG}:${requestId}` : SAI_END_FLAG;
+        const normalizedImages = normalizeScienceImages(images);
         const fallbackReadMarkerBlock = () => {
             chrome.scripting.executeScript(
                 {
@@ -166,7 +181,7 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId) {
         chrome.scripting.executeScript(
             {
                 target: { tabId },
-                func: async (userPrompt, userSettings, startFlag, endFlag) => {
+                func: async (userPrompt, userSettings, startFlag, endFlag, userImages) => {
                     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
                     const localSettings = {
                         ...{
@@ -260,6 +275,78 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId) {
                         return true;
                     }
 
+                    function sanitizeImageUrls(list) {
+                        if (!Array.isArray(list)) return [];
+                        const seen = new Set();
+                        const out = [];
+                        for (const raw of list) {
+                            const url = String(raw || '').trim();
+                            if (!url || seen.has(url)) continue;
+                            seen.add(url);
+                            out.push(url);
+                            if (out.length >= 4) break;
+                        }
+                        return out;
+                    }
+
+                    function pickFileInput() {
+                        const inputs = Array.from(document.querySelectorAll('input[type="file"]'));
+                        return inputs.find((el) => !el.disabled) || null;
+                    }
+
+                    function extFromType(type) {
+                        const t = String(type || '').toLowerCase();
+                        if (t.includes('png')) return 'png';
+                        if (t.includes('jpeg') || t.includes('jpg')) return 'jpg';
+                        if (t.includes('webp')) return 'webp';
+                        if (t.includes('gif')) return 'gif';
+                        if (t.includes('bmp')) return 'bmp';
+                        return 'png';
+                    }
+
+                    async function attachImagesToGemini(imageUrls) {
+                        const urls = sanitizeImageUrls(imageUrls);
+                        if (!urls.length) return;
+
+                        const waitStart = Date.now();
+                        let fileInput = pickFileInput();
+                        while (!fileInput && Date.now() - waitStart < 6000) {
+                            await sleep(250);
+                            fileInput = pickFileInput();
+                        }
+                        if (!fileInput) return;
+
+                        const dt = new DataTransfer();
+                        let attachedCount = 0;
+                        for (let i = 0; i < urls.length; i += 1) {
+                            const url = urls[i];
+                            try {
+                                const response = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' });
+                                if (!response.ok) continue;
+                                const blob = await response.blob();
+                                if (!blob || !String(blob.type || '').startsWith('image/')) continue;
+                                const ext = extFromType(blob.type);
+                                const file = new File([blob], `science-image-${i + 1}.${ext}`, {
+                                    type: blob.type || `image/${ext}`,
+                                    lastModified: Date.now()
+                                });
+                                dt.items.add(file);
+                                attachedCount += 1;
+                            } catch {}
+                        }
+
+                        if (!attachedCount) return;
+
+                        try {
+                            fileInput.files = dt.files;
+                        } catch {
+                            return;
+                        }
+                        fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        await sleep(Math.min(6000, 1200 + attachedCount * 700));
+                    }
+
                     function codeSnapshots() {
                         const nodes = Array.from(document.querySelectorAll('pre, code'));
                         return new Set(
@@ -332,6 +419,8 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId) {
                     if (!input) {
                         throw new Error('Gemini input box not found');
                     }
+
+                    await attachImagesToGemini(userImages);
 
                     const before = codeSnapshots();
                     if (!setPrompt(input, userPrompt)) {
@@ -441,7 +530,7 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId) {
                         observer.observe(document.body, { childList: true, subtree: true, characterData: true });
                     });
                 },
-                args: [prompt, settings, startMarker, endMarker]
+                args: [prompt, settings, startMarker, endMarker, normalizedImages]
             },
             (results) => {
                 if (chrome.runtime.lastError) {
@@ -567,7 +656,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
             const tab = await getOrCreateGeminiTab();
             const mergedSettings = { ...DEFAULT_SCIENCE_SETTINGS, ...(message.settings || {}) };
-            const raw = await executeGeminiPrompt(tab.id, message.prompt, mergedSettings, message.requestId);
+            const images = normalizeScienceImages(message.images);
+            const raw = await executeGeminiPrompt(tab.id, message.prompt, mergedSettings, message.requestId, images);
             let data = null;
             let parseError = null;
             try {

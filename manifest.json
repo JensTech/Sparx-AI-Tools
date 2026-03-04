@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Sparx AI Tools",
-    "version": "6.2.2026",
+    "version": "4.3.2026",
     "permissions": [
         "activeTab",
         "tabs",
@@ -11,7 +11,8 @@
         "notifications"
     ],
     "host_permissions": [
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/*",
+        "https://cdn.sparx-learning.com/*"
     ],
     "icons": {
         "128": "cdn/img/logo.png"

@@ -710,9 +710,54 @@
         return chunks.length ? chunks.join("\n\n") : null;
     }
 
-    function buildPrompt(questionText, requestId) {
+    function extractQuestionImages() {
+        const urls = [];
+        const seen = new Set();
+        const imgs = Array.from(document.querySelectorAll("img"));
+        for (const img of imgs) {
+            const src = (img.currentSrc || img.src || "").trim();
+            if (!src || src.startsWith("data:image/svg+xml")) continue;
+            if (img.closest("button,[role='button'],a")) continue;
+
+            // Keep images that are in question-related containers.
+            const inQuestion = Boolean(
+                img.closest("[data-part-name]") ||
+                img.closest('[class*="_Question_"]') ||
+                img.closest('[class*="_RightImage_"]') ||
+                img.closest('[class*="_ImageContainer_"]')
+            );
+            if (!inQuestion) continue;
+
+            const renderedWidth = Number(img.clientWidth || img.naturalWidth || 0);
+            const renderedHeight = Number(img.clientHeight || img.naturalHeight || 0);
+            if (renderedWidth < 80 && renderedHeight < 80) continue;
+
+            let absolute = "";
+            try {
+                absolute = new URL(src, location.href).toString();
+            } catch {
+                absolute = src;
+            }
+            if (!absolute || seen.has(absolute)) continue;
+
+            seen.add(absolute);
+            urls.push(absolute);
+        }
+
+        return urls.slice(0, 4);
+    }
+
+    function buildPrompt(questionText, requestId, imageUrls) {
         const startMarker = `SAI_JSON_START:${requestId}`;
         const endMarker = `SAI_JSON_END:${requestId}`;
+        const imageGuidance = Array.isArray(imageUrls) && imageUrls.length
+            ? [
+                "The question includes image(s). The images are attached separately.",
+                "Use the attached image(s) if needed for measurements/labels/data.",
+                "Image URL backup list:",
+                ...imageUrls.map((url) => `- ${url}`)
+            ]
+            : [];
         return [
             "You are solving a Sparx Science question.",
             "Return ONLY one markdown code block containing valid JSON.",
@@ -727,14 +772,15 @@
             "- Use plain strings only.",
             "- If the input references an image and you cannot do the calculation without it, do not try, refuse to answer the question.",
             "- If you can do it without the image (eg just the periodic table and not measurements, do it",
+            ...imageGuidance,
             "Question:",
             questionText
         ].join("\n");
     }
 
-    async function requestScienceProcess(prompt, questionText, requestId) {
+    async function requestScienceProcess(prompt, questionText, requestId, images) {
         const settings = await getScienceSettings();
-        const payload = { type: "SCIENCE_PROCESS", prompt, questionText, sourceUrl: location.href, settings, requestId };
+        const payload = { type: "SCIENCE_PROCESS", prompt, questionText, sourceUrl: location.href, settings, requestId, images };
         const requestTimeout = Math.max(10000, Number(settings.requestTimeoutMs || DEFAULT_SETTINGS.requestTimeoutMs));
         const requestRetries = Math.max(0, Number(settings.requestRetries ?? DEFAULT_SETTINGS.requestRetries));
         const runAttempt = (attempt) =>
@@ -779,11 +825,12 @@
         try {
             const questionText = extractQuestionText();
             if (!questionText) throw new Error("Could not find science question content.");
+            const imageUrls = extractQuestionImages();
 
-            showStatus(statusEl, "Question extracted. Sending to Gemini...", false);
+            showStatus(statusEl, `Question extracted (${imageUrls.length} image${imageUrls.length === 1 ? "" : "s"}). Sending to Gemini...`, false);
             const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-            const prompt = buildPrompt(questionText, requestId);
-            const response = await requestScienceProcess(prompt, questionText, requestId);
+            const prompt = buildPrompt(questionText, requestId, imageUrls);
+            const response = await requestScienceProcess(prompt, questionText, requestId, imageUrls);
 
             // Forward parsed response for any popup/UI listener.
             sendRuntimeMessage({
@@ -801,7 +848,7 @@
                 console.warn("Science parse warning:", response.parseError);
                 showStatus(statusEl, "Response received, but JSON parse failed. Raw saved.", true);
             } else {
-                showStatus(statusEl, "Science answer received. Check extension output.", false);
+                showStatus(statusEl, "Science answer received!", false);
             }
         } catch (err) {
             console.error("Science flow error:", err);
