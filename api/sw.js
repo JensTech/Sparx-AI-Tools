@@ -442,6 +442,7 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                             if (stableTimer) clearTimeout(stableTimer);
                             if (retryTimer) clearInterval(retryTimer);
                             if (nudgeTimer) clearInterval(nudgeTimer);
+                            if (pollTimer) clearInterval(pollTimer);
                             observer.disconnect();
                             rejectPrompt(new Error('Timed out waiting for Gemini code response'));
                         }, Math.max(10000, Number(localSettings.geminiResponseTimeoutMs || 120000)));
@@ -449,6 +450,7 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                         let stableTimer = null;
                         let retryTimer = null;
                         let nudgeTimer = null;
+                        let pollTimer = null;
                         let lastCandidate = '';
                         let nudges = 0;
 
@@ -480,6 +482,7 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                                         clearTimeout(timeout);
                                         if (retryTimer) clearInterval(retryTimer);
                                         if (nudgeTimer) clearInterval(nudgeTimer);
+                                        if (pollTimer) clearInterval(pollTimer);
                                         observer.disconnect();
                                         resolvePrompt(lastCandidate);
                                         return;
@@ -501,6 +504,7 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                                             retryTimer = null;
                                             clearTimeout(timeout);
                                             if (nudgeTimer) clearInterval(nudgeTimer);
+                                            if (pollTimer) clearInterval(pollTimer);
                                             observer.disconnect();
                                             resolvePrompt(lastCandidate);
                                             return;
@@ -511,11 +515,12 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                                             retryTimer = null;
                                             clearTimeout(timeout);
                                             if (nudgeTimer) clearInterval(nudgeTimer);
+                                            if (pollTimer) clearInterval(pollTimer);
                                             observer.disconnect();
                                             rejectPrompt(new Error('INCOMPLETE_GEMINI_RESPONSE'));
                                         }
                                     }, retryEveryMs);
-                                }, Math.max(200, Number(localSettings.stableWaitMs || 1300)));
+                                }, Math.max(100, Number(localSettings.stableWaitMs || 1300)));
                             }
 
                             return true;
@@ -528,6 +533,10 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                         });
 
                         observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+                        // Also poll frequently because some Gemini UI updates are virtualized and do not always emit useful mutations.
+                        pollTimer = setInterval(() => {
+                            tryExtract();
+                        }, 250);
                     });
                 },
                 args: [prompt, settings, startMarker, endMarker, normalizedImages]

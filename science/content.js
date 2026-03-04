@@ -171,7 +171,7 @@
         style.textContent = `
 #${SETTINGS_MODAL_ID} .sai-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #0b5e52 #111827;
+  scrollbar-color: #0b5e52 transparent;
 }
 #${SETTINGS_MODAL_ID} .sai-scroll::-webkit-scrollbar {
   width: 10px;
@@ -522,9 +522,10 @@
             logo.alt = "";
             logo.width = 16;
             logo.height = 16;
+            logo.style.marginLeft = "8px";
             logo.style.borderRadius = "3px";
             const text = document.createElement("span");
-            text.textContent = "Sparx-AI-Tools";
+            text.textContent = "Sparx AI Tools";
             item.appendChild(logo);
             item.appendChild(text);
 
@@ -770,8 +771,9 @@
             "- Answers must match the question requirements exactly.",
             "- Include every visible part.",
             "- Use plain strings only.",
+            "- For longer-answer questions worth more than 2 marks, write the answer as full sentences/paragraphs, not bullet points.",
             "- If the input references an image and you cannot do the calculation without it, do not try, refuse to answer the question.",
-            "- If you can do it without the image (eg just the periodic table and not measurements, do it",
+            "- If you can do it without the image (eg periodic table only, no measurements), do it.",
             ...imageGuidance,
             "Question:",
             questionText
