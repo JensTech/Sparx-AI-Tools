@@ -1,0 +1,352 @@
+#sai-science-btn.sai-science-btn {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 2147483647;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    background: #0b5e52;
+    color: #fff;
+    cursor: pointer;
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    font-size: 14px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+}
+
+#sai-science-status.sai-science-status {
+    position: fixed;
+    right: 16px;
+    bottom: 62px;
+    z-index: 2147483647;
+    max-width: 340px;
+    background: #111;
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: all 0.2s ease;
+    pointer-events: none;
+}
+
+#sai-science-status.sai-science-status.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#sai-science-status.sai-science-status.is-error {
+    background: #7a1717;
+}
+
+#sai-science-panel.sai-result-panel {
+    position: fixed;
+    right: 16px;
+    bottom: 110px;
+    width: min(520px, calc(100vw - 32px));
+    max-height: 55vh;
+    z-index: 2147483647;
+    background: #0f172a;
+    color: #e2e8f0;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    display: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+#sai-science-panel.sai-result-panel.is-open {
+    display: block;
+}
+
+.sai-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: #111827;
+    border-bottom: 1px solid #1f2937;
+}
+
+.sai-result-title {
+    font-size: 12px;
+}
+
+.sai-result-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.sai-btn-sm {
+    border: 1px solid #374151;
+    background: #1f2937;
+    color: #e5e7eb;
+    border-radius: 6px;
+    font-size: 12px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+.sai-result-content {
+    margin: 0;
+    padding: 10px;
+    overflow: auto;
+    max-height: calc(55vh - 42px);
+    font-size: 12px;
+    line-height: 1.45;
+    display: grid;
+    gap: 8px;
+}
+
+.sai-result-warning {
+    background: #7f1d1d;
+    color: #fee2e2;
+    border: 1px solid #991b1b;
+    border-radius: 8px;
+    padding: 8px 10px;
+    white-space: pre-wrap;
+}
+
+.sai-answer-row {
+    border: 1px solid #334155;
+    background: #111827;
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: grid;
+    gap: 6px;
+}
+
+.sai-answer-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.sai-answer-label {
+    color: #93c5fd;
+    font-size: 12px;
+}
+
+.sai-btn-row-copy {
+    border: 1px solid #334155;
+    background: #1f2937;
+    color: #e5e7eb;
+    border-radius: 6px;
+    font-size: 11px;
+    padding: 3px 7px;
+    cursor: pointer;
+}
+
+.sai-answer-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #e2e8f0;
+    font-size: 12px;
+}
+
+.sai-checks-wrap {
+    border: 1px solid #334155;
+    background: #0b1220;
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: grid;
+    gap: 6px;
+}
+
+.sai-checks-title {
+    color: #a7f3d0;
+    font-size: 12px;
+}
+
+.sai-checks-list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.sai-checks-list li {
+    margin: 0;
+}
+
+.sai-raw-response {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+#sai-science-settings-modal.sai-modal,
+#sai-science-fail-modal.sai-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+}
+
+#sai-science-settings-modal.sai-modal.is-open,
+#sai-science-fail-modal.sai-modal.is-open {
+    display: flex;
+}
+
+.sai-settings-card {
+    width: min(520px, calc(100vw - 32px));
+    max-height: 75vh;
+    overflow: auto;
+    background: #111827;
+    color: #e5e7eb;
+    border: 1px solid #374151;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.sai-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #0b5e52 transparent;
+}
+
+.sai-scroll::-webkit-scrollbar {
+    width: 10px;
+}
+
+.sai-scroll::-webkit-scrollbar-track {
+    background: #111827;
+}
+
+.sai-scroll::-webkit-scrollbar-thumb {
+    background: #0b5e52;
+    border-radius: 8px;
+    border: 2px solid #111827;
+}
+
+.sai-modal-title {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+}
+
+.sai-settings-form {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.sai-setting-wrap {
+    display: grid;
+    gap: 4px;
+    font-size: 13px;
+}
+
+.sai-setting-label-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sai-setting-tip {
+    font-size: 12px;
+    opacity: 0.85;
+    cursor: help;
+    border: 1px solid #4b5563;
+    border-radius: 10px;
+    padding: 0 5px;
+    line-height: 16px;
+}
+
+.sai-setting-input {
+    border: 1px solid #4b5563;
+    background: #1f2937;
+    color: #e5e7eb;
+    border-radius: 8px;
+    padding: 7px 9px;
+    font-size: 13px;
+}
+
+.sai-bool-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 9px 10px;
+    background: #0f172a;
+}
+
+.sai-bool-left {
+    display: grid;
+    gap: 3px;
+}
+
+.sai-bool-help {
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.sai-bool-toggle {
+    width: 16px;
+    height: 16px;
+    accent-color: #0b5e52;
+    cursor: pointer;
+}
+
+.sai-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.sai-btn-secondary {
+    border: 1px solid #4b5563;
+    background: #1f2937;
+    color: #e5e7eb;
+    border-radius: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+}
+
+.sai-btn-primary {
+    border: 1px solid #0b5e52;
+    background: #0b5e52;
+    color: #fff;
+    border-radius: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+}
+
+.sai-menu-item {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.sai-menu-logo {
+    margin-left: 8px;
+    border-radius: 3px;
+}
+
+.sai-fail-card {
+    width: min(420px, calc(100vw - 32px));
+    background: #111827;
+    color: #e5e7eb;
+    border: 1px solid #374151;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.sai-fail-msg {
+    margin: 0 0 14px 0;
+    font-size: 14px;
+    opacity: 0.95;
+}

@@ -16,13 +16,14 @@
         requestTimeoutMs: 25000,
         requestRetries: 2,
         geminiResponseTimeoutMs: 120000,
-        stableWaitMs: 1300,
-        markerRetryCount: 5,
-        markerRetryIntervalMs: 400,
-        submitAttemptCount: 12,
-        submitAttemptIntervalMs: 250,
-        nudgeCount: 3,
-        nudgeIntervalMs: 7000
+        stableWaitMs: 700,
+        markerRetryCount: 3,
+        markerRetryIntervalMs: 250,
+        submitAttemptCount: 8,
+        submitAttemptIntervalMs: 100,
+        nudgeCount: 2,
+        nudgeIntervalMs: 3000,
+        autoTabSwitch: true,
     };
     let activeRunId = 0;
     const SETTINGS_META = [
@@ -49,8 +50,9 @@
     function isRetryableGeminiError(message) {
         const text = String(message || "").toLowerCase();
         return (
-            text.includes("timed out") ||
+            text.includes("timed out waiting for gemini code response") ||
             text.includes("incomplete_gemini_response") ||
+            text.includes("gemini_stopped_responding") ||
             text.includes("no code block text") ||
             text.includes("marker block not found")
         );
@@ -118,42 +120,12 @@
 
         const btn = document.createElement("button");
         btn.id = BTN_ID;
+        btn.className = "sai-science-btn";
         btn.textContent = "Solve Science";
-        Object.assign(btn.style, {
-            position: "fixed",
-            right: "16px",
-            bottom: "16px",
-            zIndex: "2147483647",
-            border: "none",
-            borderRadius: "8px",
-            padding: "10px 14px",
-            background: "#0b5e52",
-            color: "#fff",
-            cursor: "pointer",
-            fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif",
-            fontSize: "14px",
-            boxShadow: "0 6px 16px rgba(0,0,0,.22)"
-        });
 
         const status = document.createElement("div");
         status.id = STATUS_ID;
-        Object.assign(status.style, {
-            position: "fixed",
-            right: "16px",
-            bottom: "62px",
-            zIndex: "2147483647",
-            maxWidth: "340px",
-            background: "#111",
-            color: "#fff",
-            borderRadius: "8px",
-            padding: "8px 10px",
-            fontSize: "12px",
-            fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif",
-            opacity: "0",
-            transform: "translateY(6px)",
-            transition: "all .2s ease",
-            pointerEvents: "none"
-        });
+        status.className = "sai-science-status";
 
         btn.addEventListener("click", () => void runScienceFlow(btn, status));
 
@@ -166,26 +138,11 @@
 
     function ensureGlobalStyles() {
         if (document.getElementById(STYLES_ID)) return;
-        const style = document.createElement("style");
-        style.id = STYLES_ID;
-        style.textContent = `
-#${SETTINGS_MODAL_ID} .sai-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: #0b5e52 transparent;
-}
-#${SETTINGS_MODAL_ID} .sai-scroll::-webkit-scrollbar {
-  width: 10px;
-}
-#${SETTINGS_MODAL_ID} .sai-scroll::-webkit-scrollbar-track {
-  background: #111827;
-}
-#${SETTINGS_MODAL_ID} .sai-scroll::-webkit-scrollbar-thumb {
-  background: #0b5e52;
-  border-radius: 8px;
-  border: 2px solid #111827;
-}
-`;
-        document.head.appendChild(style);
+        const link = document.createElement("link");
+        link.id = STYLES_ID;
+        link.rel = "stylesheet";
+        link.href = chrome.runtime.getURL("cdn/css/sci.css");
+        document.head.appendChild(link);
     }
 
     function ensureResultPanel() {
@@ -193,75 +150,33 @@
 
         const panel = document.createElement("div");
         panel.id = PANEL_ID;
-        Object.assign(panel.style, {
-            position: "fixed",
-            right: "16px",
-            bottom: "110px",
-            width: "min(520px, calc(100vw - 32px))",
-            maxHeight: "55vh",
-            zIndex: "2147483647",
-            background: "#0f172a",
-            color: "#e2e8f0",
-            border: "1px solid #1f2937",
-            borderRadius: "10px",
-            boxShadow: "0 12px 28px rgba(0,0,0,.35)",
-            overflow: "hidden",
-            display: "none",
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
-        });
+        panel.className = "sai-result-panel";
 
         const header = document.createElement("div");
-        Object.assign(header.style, {
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "8px 10px",
-            background: "#111827",
-            borderBottom: "1px solid #1f2937"
-        });
+        header.className = "sai-result-header";
 
         const title = document.createElement("strong");
         title.textContent = "Answer Response";
-        title.style.fontSize = "12px";
+        title.className = "sai-result-title";
 
         const actions = document.createElement("div");
-        actions.style.display = "flex";
-        actions.style.gap = "6px";
+        actions.className = "sai-result-actions";
 
         const copyBtn = document.createElement("button");
         copyBtn.type = "button";
-        copyBtn.textContent = "Copy";
+        copyBtn.textContent = "Copy all";
         copyBtn.dataset.role = "copy";
+        copyBtn.className = "sai-btn-sm";
 
         const closeBtn = document.createElement("button");
         closeBtn.type = "button";
         closeBtn.textContent = "Close";
         closeBtn.dataset.role = "close";
+        closeBtn.className = "sai-btn-sm";
 
-        [copyBtn, closeBtn].forEach((btnEl) => {
-            Object.assign(btnEl.style, {
-                border: "1px solid #374151",
-                background: "#1f2937",
-                color: "#e5e7eb",
-                borderRadius: "6px",
-                fontSize: "12px",
-                padding: "4px 8px",
-                cursor: "pointer"
-            });
-        });
-
-        const body = document.createElement("pre");
+        const body = document.createElement("div");
         body.dataset.role = "content";
-        Object.assign(body.style, {
-            margin: "0",
-            padding: "10px",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            overflow: "auto",
-            maxHeight: "calc(55vh - 42px)",
-            fontSize: "12px",
-            lineHeight: "1.45"
-        });
+        body.className = "sai-result-content";
 
         actions.appendChild(copyBtn);
         actions.appendChild(closeBtn);
@@ -272,24 +187,30 @@
         document.body.appendChild(panel);
 
         closeBtn.addEventListener("click", () => {
-            panel.style.display = "none";
+            panel.classList.remove("is-open");
         });
 
         copyBtn.addEventListener("click", async () => {
             try {
-                await navigator.clipboard.writeText(body.textContent || "");
+                await navigator.clipboard.writeText(body.dataset.plainText || body.textContent || "");
             } catch (err) {
                 console.error("Copy failed:", err);
             }
         });
     }
 
-    function showResultPanel(response) {
-        ensureResultPanel();
-        const panel = document.getElementById(PANEL_ID);
-        const content = panel?.querySelector('[data-role="content"]');
-        if (!panel || !content) return;
+    function formatPartLabel(part, idx, total) {
+        const toAlphaLabel = (n) => String.fromCharCode(97 + Math.max(0, n));
+        const p = String(part || "").trim().toLowerCase();
+        if (!p || p === "main") return total > 1 ? `${toAlphaLabel(idx)})` : "Answer";
+        const partNum = p.match(/^part\s*(\d+)$/);
+        if (partNum) return `${toAlphaLabel(Number(partNum[1]) - 1)})`;
+        const singleLetter = p.match(/^([a-z])\)?$/);
+        if (singleLetter) return `${singleLetter[1]})`;
+        return String(part || "Answer");
+    }
 
+    function buildResultPlainText(response) {
         const lines = [];
         if (response.parseError) {
             lines.push(`Parse warning: ${response.parseError}`);
@@ -298,21 +219,10 @@
 
         if (response.data && typeof response.data === "object" && Array.isArray(response.data.answers)) {
             const answers = response.data.answers;
-            const toAlphaLabel = (n) => String.fromCharCode(97 + Math.max(0, n));
-            const partToLabel = (part, idx, total) => {
-                const p = String(part || "").trim().toLowerCase();
-                if (!p || p === "main") return total > 1 ? `${toAlphaLabel(idx)})` : "Answer:";
-                const partNum = p.match(/^part\s*(\d+)$/);
-                if (partNum) return `${toAlphaLabel(Number(partNum[1]) - 1)})`;
-                const singleLetter = p.match(/^([a-z])\)?$/);
-                if (singleLetter) return `${singleLetter[1]})`;
-                return `${part}:`;
-            };
-
             lines.push("Answers");
             lines.push("");
             answers.forEach((item, idx) => {
-                const label = partToLabel(item?.part, idx, answers.length);
+                const label = formatPartLabel(item?.part, idx, answers.length);
                 const answer = String(item?.answer || "").trim() || "(blank)";
                 lines.push(`${label} ${answer}`);
             });
@@ -325,21 +235,110 @@
                     lines.push(`- ${String(check)}`);
                 });
             }
-        } else if (response.raw) {
-            lines.push(String(response.raw));
-        } else {
-            lines.push("No response data.");
+            return lines.join("\n");
         }
 
-        content.textContent = lines.join("\n");
-        panel.style.display = "block";
+        if (response.raw) return String(response.raw);
+        return "No response data.";
+    }
+
+    function showResultPanel(response) {
+        ensureResultPanel();
+        const panel = document.getElementById(PANEL_ID);
+        const content = panel?.querySelector('[data-role="content"]');
+        if (!panel || !content) return;
+
+        const plainText = buildResultPlainText(response);
+        content.innerHTML = "";
+        content.dataset.plainText = plainText;
+
+        if (response.parseError) {
+            const warning = document.createElement("div");
+            warning.textContent = `Parse warning: ${response.parseError}`;
+            warning.className = "sai-result-warning";
+            content.appendChild(warning);
+        }
+
+        if (response.data && typeof response.data === "object" && Array.isArray(response.data.answers)) {
+            const answers = response.data.answers;
+            answers.forEach((item, idx) => {
+                const label = formatPartLabel(item?.part, idx, answers.length);
+                const answer = String(item?.answer || "").trim() || "(blank)";
+
+                const row = document.createElement("div");
+                row.className = "sai-answer-row";
+
+                const top = document.createElement("div");
+                top.className = "sai-answer-top";
+
+                const labelEl = document.createElement("strong");
+                labelEl.textContent = label;
+                labelEl.className = "sai-answer-label";
+
+                const rowCopy = document.createElement("button");
+                rowCopy.type = "button";
+                rowCopy.textContent = "Copy";
+                rowCopy.className = "sai-btn-row-copy";
+                rowCopy.addEventListener("click", async () => {
+                    try {
+                        await navigator.clipboard.writeText(answer);
+                    } catch (err) {
+                        console.error("Row copy failed:", err);
+                    }
+                });
+
+                const answerEl = document.createElement("div");
+                answerEl.textContent = answer;
+                answerEl.className = "sai-answer-text";
+
+                top.appendChild(labelEl);
+                top.appendChild(rowCopy);
+                row.appendChild(top);
+                row.appendChild(answerEl);
+                content.appendChild(row);
+            });
+
+            if (Array.isArray(response.data.checks) && response.data.checks.length) {
+                const checksWrap = document.createElement("div");
+                checksWrap.className = "sai-checks-wrap";
+
+                const checksTitle = document.createElement("strong");
+                checksTitle.textContent = "Checks";
+                checksTitle.className = "sai-checks-title";
+                checksWrap.appendChild(checksTitle);
+
+                const ul = document.createElement("ul");
+                ul.className = "sai-checks-list";
+                response.data.checks.forEach((check) => {
+                    const li = document.createElement("li");
+                    li.textContent = String(check);
+                    ul.appendChild(li);
+                });
+                checksWrap.appendChild(ul);
+                content.appendChild(checksWrap);
+            }
+        } else if (response.raw) {
+            const raw = document.createElement("pre");
+            raw.textContent = String(response.raw);
+            raw.className = "sai-raw-response";
+            content.appendChild(raw);
+        } else {
+            const none = document.createElement("div");
+            none.textContent = "No response data.";
+            content.appendChild(none);
+        }
+
+        panel.classList.add("is-open");
     }
 
     function hideResultPanel() {
         const panel = document.getElementById(PANEL_ID);
         const content = panel?.querySelector('[data-role="content"]');
-        if (content) content.textContent = "";
-        if (panel) panel.style.display = "none";
+        if (content) {
+            content.innerHTML = "";
+            content.dataset.plainText = "";
+        }
+        if (panel) panel.classList.remove("is-open");
     }
 
     function ensureSettingsModal() {
@@ -347,62 +346,30 @@
 
         const modal = document.createElement("div");
         modal.id = SETTINGS_MODAL_ID;
-        Object.assign(modal.style, {
-            position: "fixed",
-            inset: "0",
-            zIndex: "2147483647",
-            display: "none",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0,0,0,.45)",
-            fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif"
-        });
+        modal.className = "sai-modal";
 
         const card = document.createElement("div");
-        Object.assign(card.style, {
-            width: "min(520px, calc(100vw - 32px))",
-            maxHeight: "75vh",
-            overflow: "auto",
-            background: "#111827",
-            color: "#e5e7eb",
-            border: "1px solid #374151",
-            borderRadius: "12px",
-            padding: "16px",
-            boxShadow: "0 16px 40px rgba(0,0,0,.4)"
-        });
-        card.classList.add("sai-scroll");
+        card.className = "sai-settings-card sai-scroll";
 
         const title = document.createElement("h3");
         title.textContent = "Sparx AI Settings";
-        Object.assign(title.style, { margin: "0 0 10px 0", fontSize: "18px" });
+        title.className = "sai-modal-title";
 
         const form = document.createElement("div");
         form.dataset.role = "settings-form";
-        Object.assign(form.style, {
-            display: "grid",
-            gap: "10px",
-            marginBottom: "14px"
-        });
+        form.className = "sai-settings-form";
 
         SETTINGS_META.forEach(({ key, label, help }) => {
             const wrap = document.createElement("label");
-            Object.assign(wrap.style, { display: "grid", gap: "4px", fontSize: "13px" });
+            wrap.className = "sai-setting-wrap";
             const labelRow = document.createElement("div");
-            Object.assign(labelRow.style, { display: "flex", alignItems: "center", gap: "6px" });
+            labelRow.className = "sai-setting-label-row";
             const labelText = document.createElement("span");
             labelText.textContent = label;
             const tip = document.createElement("span");
             tip.textContent = "(?)";
             tip.title = help;
-            Object.assign(tip.style, {
-                fontSize: "12px",
-                opacity: "0.85",
-                cursor: "help",
-                border: "1px solid #4b5563",
-                borderRadius: "10px",
-                padding: "0 5px",
-                lineHeight: "16px"
-            });
+            tip.className = "sai-setting-tip";
             labelRow.appendChild(labelText);
             labelRow.appendChild(tip);
 
@@ -411,55 +378,55 @@
             input.min = "0";
             input.step = "1";
             input.dataset.key = key;
-            Object.assign(input.style, {
-                border: "1px solid #4b5563",
-                background: "#1f2937",
-                color: "#e5e7eb",
-                borderRadius: "8px",
-                padding: "7px 9px",
-                fontSize: "13px"
-            });
+            input.className = "sai-setting-input";
             wrap.appendChild(labelRow);
             wrap.appendChild(input);
             form.appendChild(wrap);
         });
 
+        const boolWrap = document.createElement("label");
+        boolWrap.className = "sai-bool-wrap";
+        const boolLeft = document.createElement("div");
+        boolLeft.className = "sai-bool-left";
+        const boolTitle = document.createElement("span");
+        boolTitle.textContent = "Auto tab switch";
+        const boolHelp = document.createElement("span");
+        boolHelp.textContent = "Focus Gemini while generating, then return to Science tab.";
+        boolHelp.className = "sai-bool-help";
+        boolLeft.appendChild(boolTitle);
+        boolLeft.appendChild(boolHelp);
+
+        const toggle = document.createElement("input");
+        toggle.type = "checkbox";
+        toggle.dataset.boolKey = "autoTabSwitch";
+        toggle.className = "sai-bool-toggle";
+        boolWrap.appendChild(boolLeft);
+        boolWrap.appendChild(toggle);
+        form.appendChild(boolWrap);
+
         const actions = document.createElement("div");
-        Object.assign(actions.style, { display: "flex", gap: "8px", justifyContent: "flex-end" });
+        actions.className = "sai-actions";
 
         const closeBtn = document.createElement("button");
         closeBtn.type = "button";
         closeBtn.textContent = "Close";
-        Object.assign(closeBtn.style, {
-            border: "1px solid #4b5563",
-            background: "#1f2937",
-            color: "#e5e7eb",
-            borderRadius: "8px",
-            padding: "7px 10px",
-            cursor: "pointer"
-        });
+        closeBtn.className = "sai-btn-secondary";
 
         const saveBtn = document.createElement("button");
         saveBtn.type = "button";
         saveBtn.textContent = "Save";
-        Object.assign(saveBtn.style, {
-            border: "1px solid #0b5e52",
-            background: "#0b5e52",
-            color: "#fff",
-            borderRadius: "8px",
-            padding: "7px 10px",
-            cursor: "pointer"
-        });
+        saveBtn.className = "sai-btn-primary";
 
         closeBtn.addEventListener("click", () => {
-            modal.style.display = "none";
+            modal.classList.remove("is-open");
         });
         modal.addEventListener("click", (ev) => {
-            if (ev.target === modal) modal.style.display = "none";
+            if (ev.target === modal) modal.classList.remove("is-open");
         });
 
         saveBtn.addEventListener("click", async () => {
             const inputs = Array.from(form.querySelectorAll("input[data-key]"));
+            const boolInputs = Array.from(form.querySelectorAll("input[data-bool-key]"));
             const next = { ...DEFAULT_SETTINGS };
             inputs.forEach((inp) => {
                 const key = inp.dataset.key;
@@ -467,8 +434,13 @@
                 if (!key || Number.isNaN(val)) return;
                 next[key] = Math.max(0, Math.floor(val));
             });
+            boolInputs.forEach((inp) => {
+                const key = inp.dataset.boolKey;
+                if (!key) return;
+                next[key] = Boolean(inp.checked);
+            });
             await saveScienceSettings(next);
-            modal.style.display = "none";
+            modal.classList.remove("is-open");
         });
 
         actions.appendChild(closeBtn);
@@ -487,12 +459,18 @@
         if (!modal || !form) return;
         const settings = await getScienceSettings();
         const inputs = Array.from(form.querySelectorAll("input[data-key]"));
+        const boolInputs = Array.from(form.querySelectorAll("input[data-bool-key]"));
         inputs.forEach((inp) => {
             const key = inp.dataset.key;
             if (!key) return;
             inp.value = String(settings[key] ?? DEFAULT_SETTINGS[key] ?? 0);
         });
-        modal.style.display = "flex";
+        boolInputs.forEach((inp) => {
+            const key = inp.dataset.boolKey;
+            if (!key) return;
+            inp.checked = Boolean(settings[key] ?? DEFAULT_SETTINGS[key]);
+        });
+        modal.classList.add("is-open");
     }
 
     function ensureGlobalMenuItem() {
@@ -508,22 +486,13 @@
             item.id = MENU_ITEM_ID;
             item.setAttribute("role", "menuitem");
             item.className = cookieNode?.className || candidates[0]?.className || "";
-            Object.assign(item.style, {
-                width: "100%",
-                textAlign: "left",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "8px 12px",
-                cursor: "pointer"
-            });
+            item.classList.add("sai-menu-item");
             const logo = document.createElement("img");
             logo.src = chrome.runtime.getURL("cdn/img/logo.png");
             logo.alt = "";
             logo.width = 16;
             logo.height = 16;
-            logo.style.marginLeft = "8px";
-            logo.style.borderRadius = "3px";
+            logo.className = "sai-menu-logo";
             const text = document.createElement("span");
             text.textContent = "Sparx AI Tools";
             item.appendChild(logo);
@@ -550,66 +519,35 @@
 
         const modal = document.createElement("div");
         modal.id = FAIL_MODAL_ID;
-        Object.assign(modal.style, {
-            position: "fixed",
-            inset: "0",
-            zIndex: "2147483647",
-            display: "none",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0,0,0,.45)",
-            fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif"
-        });
+        modal.className = "sai-modal";
 
         const card = document.createElement("div");
-        Object.assign(card.style, {
-            width: "min(420px, calc(100vw - 32px))",
-            background: "#111827",
-            color: "#e5e7eb",
-            border: "1px solid #374151",
-            borderRadius: "12px",
-            padding: "16px",
-            boxShadow: "0 16px 40px rgba(0,0,0,.4)"
-        });
+        card.className = "sai-fail-card";
 
         const title = document.createElement("h3");
         title.textContent = "Request failed";
-        Object.assign(title.style, { margin: "0 0 8px 0", fontSize: "18px" });
+        title.className = "sai-modal-title";
 
         const msg = document.createElement("p");
         msg.dataset.role = "message";
         msg.textContent = "Could not complete the Gemini request.";
-        Object.assign(msg.style, { margin: "0 0 14px 0", fontSize: "14px", opacity: "0.95" });
+        msg.className = "sai-fail-msg";
 
         const actions = document.createElement("div");
-        Object.assign(actions.style, { display: "flex", gap: "8px", justifyContent: "flex-end" });
+        actions.className = "sai-actions";
 
         const cancelBtn = document.createElement("button");
         cancelBtn.type = "button";
         cancelBtn.textContent = "Close";
-        Object.assign(cancelBtn.style, {
-            border: "1px solid #4b5563",
-            background: "#1f2937",
-            color: "#e5e7eb",
-            borderRadius: "8px",
-            padding: "7px 10px",
-            cursor: "pointer"
-        });
+        cancelBtn.className = "sai-btn-secondary";
 
         const retryBtn = document.createElement("button");
         retryBtn.type = "button";
         retryBtn.textContent = "Try again";
-        Object.assign(retryBtn.style, {
-            border: "1px solid #0b5e52",
-            background: "#0b5e52",
-            color: "#fff",
-            borderRadius: "8px",
-            padding: "7px 10px",
-            cursor: "pointer"
-        });
+        retryBtn.className = "sai-btn-primary";
 
         cancelBtn.addEventListener("click", () => {
-            modal.style.display = "none";
+            modal.classList.remove("is-open");
         });
 
         retryBtn.addEventListener("click", () => {
@@ -620,7 +558,7 @@
                     }
                 })
                 .finally(() => {
-                    modal.style.display = "none";
+                    modal.classList.remove("is-open");
                 });
         });
 
@@ -639,24 +577,22 @@
         const msg = modal?.querySelector('[data-role="message"]');
         if (!modal || !msg) return;
         msg.textContent = message || "Could not complete the Gemini request.";
-        modal.style.display = "flex";
+        modal.classList.add("is-open");
     }
 
     function hideFailureModal() {
         const modal = document.getElementById(FAIL_MODAL_ID);
         if (!modal) return;
-        modal.style.display = "none";
+        modal.classList.remove("is-open");
     }
 
     function showStatus(el, text, isError) {
         el.textContent = text;
-        el.style.background = isError ? "#7a1717" : "#111";
-        el.style.opacity = "1";
-        el.style.transform = "translateY(0)";
+        el.classList.toggle("is-error", Boolean(isError));
+        el.classList.add("is-visible");
         window.clearTimeout(showStatus._timer);
         showStatus._timer = window.setTimeout(() => {
-            el.style.opacity = "0";
-            el.style.transform = "translateY(6px)";
+            el.classList.remove("is-visible");
         }, 2800);
     }
 
@@ -783,7 +719,9 @@
     async function requestScienceProcess(prompt, questionText, requestId, images) {
         const settings = await getScienceSettings();
         const payload = { type: "SCIENCE_PROCESS", prompt, questionText, sourceUrl: location.href, settings, requestId, images };
-        const requestTimeout = Math.max(10000, Number(settings.requestTimeoutMs || DEFAULT_SETTINGS.requestTimeoutMs));
+        const uiTimeout = Number(settings.requestTimeoutMs || DEFAULT_SETTINGS.requestTimeoutMs);
+        const geminiTimeout = Number(settings.geminiResponseTimeoutMs || DEFAULT_SETTINGS.geminiResponseTimeoutMs);
+        const requestTimeout = Math.max(10000, uiTimeout, geminiTimeout + 15000);
         const requestRetries = Math.max(0, Number(settings.requestRetries ?? DEFAULT_SETTINGS.requestRetries));
         const runAttempt = (attempt) =>
             withTimeout(
@@ -794,7 +732,7 @@
                     return response;
                 }),
                 requestTimeout,
-                "Science request timed out"
+                "Science request channel timed out"
             ).catch(async (err) => {
                 const retryable = isMessagingContextError(err?.message) || isRetryableGeminiError(err?.message);
                 if (attempt < requestRetries && retryable) {

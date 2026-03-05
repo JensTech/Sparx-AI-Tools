@@ -4,6 +4,12 @@
 
 Sparx AI Tools is a Chrome extension that adds homework help tools to Sparx Reader and Sparx Science pages.
 
+> [!WARNING]
+>
+> Due to the nature of the sparx science extension controlling your browser
+> to automate question answering, Microsoft Defender may flag the files as
+> a false positive. To solve this, allow it through defender.
+
 ## Modules
 
 ### Reader tools

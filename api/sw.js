@@ -7,13 +7,14 @@ const SAI_START_LINE_RE = /(^|\n)\s*SAI_JSON_START\s*(\n|$)/g;
 const SAI_END_LINE_RE = /(^|\n)\s*SAI_JSON_END\s*(\n|$)/g;
 const DEFAULT_SCIENCE_SETTINGS = {
     geminiResponseTimeoutMs: 120000,
-    stableWaitMs: 1300,
-    markerRetryCount: 5,
-    markerRetryIntervalMs: 400,
-    submitAttemptCount: 12,
-    submitAttemptIntervalMs: 250,
-    nudgeCount: 3,
-    nudgeIntervalMs: 7000
+    stableWaitMs: 700,
+    markerRetryCount: 3,
+    markerRetryIntervalMs: 250,
+    submitAttemptCount: 8,
+    submitAttemptIntervalMs: 100,
+    nudgeCount: 2,
+    nudgeIntervalMs: 3000,
+    autoTabSwitch: true
 };
 
 const LOCAL_VERSION = chrome.runtime.getManifest().version;
@@ -112,6 +113,29 @@ async function getOrCreateGeminiTab() {
     return created;
 }
 
+function focusTab(tabId) {
+    return new Promise((resolve) => {
+        if (!tabId) {
+            resolve();
+            return;
+        }
+        chrome.tabs.get(tabId, (tab) => {
+            if (chrome.runtime.lastError || !tab) {
+                resolve();
+                return;
+            }
+            const done = () => {
+                chrome.tabs.update(tabId, { active: true }, () => resolve());
+            };
+            if (typeof tab.windowId === 'number') {
+                chrome.windows.update(tab.windowId, { focused: true }, () => done());
+                return;
+            }
+            done();
+        });
+    });
+}
+
 function normalizeScienceImages(images) {
     if (!Array.isArray(images)) return [];
     const seen = new Set();
@@ -186,13 +210,13 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                     const localSettings = {
                         ...{
                             geminiResponseTimeoutMs: 120000,
-                            stableWaitMs: 1300,
-                            markerRetryCount: 5,
-                            markerRetryIntervalMs: 400,
-                            submitAttemptCount: 12,
-                            submitAttemptIntervalMs: 250,
-                            nudgeCount: 3,
-                            nudgeIntervalMs: 7000
+                            stableWaitMs: 700,
+                            markerRetryCount: 3,
+                            markerRetryIntervalMs: 250,
+                            submitAttemptCount: 8,
+                            submitAttemptIntervalMs: 100,
+                            nudgeCount: 2,
+                            nudgeIntervalMs: 3000
                         },
                         ...(userSettings || {})
                     };
@@ -310,7 +334,7 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
 
                         const waitStart = Date.now();
                         let fileInput = pickFileInput();
-                        while (!fileInput && Date.now() - waitStart < 6000) {
+                        while (!fileInput && Date.now() - waitStart < 2500) {
                             await sleep(250);
                             fileInput = pickFileInput();
                         }
@@ -344,7 +368,7 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                         }
                         fileInput.dispatchEvent(new Event('input', { bubbles: true }));
                         fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-                        await sleep(Math.min(6000, 1200 + attachedCount * 700));
+                        await sleep(Math.min(1500, 350 + attachedCount * 250));
                     }
 
                     function codeSnapshots() {
@@ -409,6 +433,41 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                         return START_LINE_RE.test(text) && END_LINE_RE.test(text);
                     }
 
+                    const FAILURE_PHRASES = [
+                        ['stopped responding', 'stopped responding'],
+                        ['something went wrong', 'something went wrong'],
+                        ['an error occurred', 'error occurred'],
+                        ['unable to complete', 'unable to complete'],
+                        ['check your connection', 'connection issue'],
+                        ['try again later', 'try again later']
+                    ];
+
+                    function failureReasonFromText(text) {
+                        const t = String(text || '').toLowerCase();
+                        if (!t) return '';
+                        for (const [needle, reason] of FAILURE_PHRASES) {
+                            if (t.includes(needle)) return reason;
+                        }
+                        return '';
+                    }
+
+                    function detectGeminiFailureSignal() {
+                        return failureReasonFromText(document.body?.innerText || '');
+                    }
+
+                    function detectGeminiFailureInMutations(records) {
+                        for (const rec of records || []) {
+                            const targetReason = failureReasonFromText(rec?.target?.textContent || '');
+                            if (targetReason) return targetReason;
+                            for (const node of rec?.addedNodes || []) {
+                                if (!node) continue;
+                                const reason = failureReasonFromText(node.textContent || '');
+                                if (reason) return reason;
+                            }
+                        }
+                        return '';
+                    }
+
                     const start = Date.now();
                     let input = null;
                     while (!input && Date.now() - start < 20000) {
@@ -429,9 +488,9 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
 
                     let sent = false;
                     for (let i = 0; i < Math.max(1, Number(localSettings.submitAttemptCount || 12)); i += 1) {
-                        await sleep(Math.max(50, Number(localSettings.submitAttemptIntervalMs || 250)));
                         sent = submitPrompt(input);
                         if (sent) break;
+                        await sleep(Math.max(30, Number(localSettings.submitAttemptIntervalMs || 100)));
                     }
                     if (!sent) {
                         throw new Error('Failed to submit Gemini prompt');
@@ -443,7 +502,12 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                             if (retryTimer) clearInterval(retryTimer);
                             if (nudgeTimer) clearInterval(nudgeTimer);
                             if (pollTimer) clearInterval(pollTimer);
+                            if (failTimer) clearInterval(failTimer);
                             observer.disconnect();
+                            if (lastCandidate) {
+                                resolvePrompt(lastCandidate);
+                                return;
+                            }
                             rejectPrompt(new Error('Timed out waiting for Gemini code response'));
                         }, Math.max(10000, Number(localSettings.geminiResponseTimeoutMs || 120000)));
 
@@ -451,8 +515,23 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                         let retryTimer = null;
                         let nudgeTimer = null;
                         let pollTimer = null;
+                        let failTimer = null;
                         let lastCandidate = '';
                         let nudges = 0;
+                        const finish = (err, value) => {
+                            if (stableTimer) clearTimeout(stableTimer);
+                            if (retryTimer) clearInterval(retryTimer);
+                            if (nudgeTimer) clearInterval(nudgeTimer);
+                            if (pollTimer) clearInterval(pollTimer);
+                            if (failTimer) clearInterval(failTimer);
+                            clearTimeout(timeout);
+                            observer.disconnect();
+                            if (err) {
+                                rejectPrompt(err);
+                                return;
+                            }
+                            resolvePrompt(value);
+                        };
 
                         // Gemini occasionally keeps text in the composer unsent; nudge submit again.
                         nudgeTimer = setInterval(() => {
@@ -463,7 +542,7 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                                 clearInterval(nudgeTimer);
                                 nudgeTimer = null;
                             }
-                        }, Math.max(1000, Number(localSettings.nudgeIntervalMs || 7000)));
+                        }, Math.max(700, Number(localSettings.nudgeIntervalMs || 3000)));
 
                         const tryExtract = () => {
                             const newestCandidate = getLatestCandidate(before);
@@ -479,19 +558,14 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                                 // Wait for streaming to settle before resolving.
                                 stableTimer = setTimeout(() => {
                                     if (hasFlags(lastCandidate)) {
-                                        clearTimeout(timeout);
-                                        if (retryTimer) clearInterval(retryTimer);
-                                        if (nudgeTimer) clearInterval(nudgeTimer);
-                                        if (pollTimer) clearInterval(pollTimer);
-                                        observer.disconnect();
-                                        resolvePrompt(lastCandidate);
+                                        finish(null, lastCandidate);
                                         return;
                                     }
 
                                     // Incomplete capture fallback: retry 5 times across ~2 seconds.
                                     let attempts = 0;
-                                    const retryEveryMs = Math.max(100, Number(localSettings.markerRetryIntervalMs || 400));
-                                    const retryMax = Math.max(1, Number(localSettings.markerRetryCount || 5));
+                                    const retryEveryMs = Math.max(80, Number(localSettings.markerRetryIntervalMs || 250));
+                                    const retryMax = Math.max(1, Number(localSettings.markerRetryCount || 3));
                                     retryTimer = setInterval(() => {
                                         attempts += 1;
                                         const current = getLatestCandidate(before) || lastCandidate;
@@ -502,25 +576,21 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                                         if (hasFlags(lastCandidate)) {
                                             clearInterval(retryTimer);
                                             retryTimer = null;
-                                            clearTimeout(timeout);
-                                            if (nudgeTimer) clearInterval(nudgeTimer);
-                                            if (pollTimer) clearInterval(pollTimer);
-                                            observer.disconnect();
-                                            resolvePrompt(lastCandidate);
+                                            finish(null, lastCandidate);
                                             return;
                                         }
 
                                         if (attempts >= retryMax) {
                                             clearInterval(retryTimer);
                                             retryTimer = null;
-                                            clearTimeout(timeout);
-                                            if (nudgeTimer) clearInterval(nudgeTimer);
-                                            if (pollTimer) clearInterval(pollTimer);
-                                            observer.disconnect();
-                                            rejectPrompt(new Error('INCOMPLETE_GEMINI_RESPONSE'));
+                                            if (lastCandidate) {
+                                                finish(null, lastCandidate);
+                                                return;
+                                            }
+                                            finish(new Error('INCOMPLETE_GEMINI_RESPONSE'));
                                         }
                                     }, retryEveryMs);
-                                }, Math.max(100, Number(localSettings.stableWaitMs || 1300)));
+                                }, Math.max(80, Number(localSettings.stableWaitMs || 700)));
                             }
 
                             return true;
@@ -528,7 +598,14 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
 
                         tryExtract();
 
-                        const observer = new MutationObserver(() => {
+                        const observer = new MutationObserver((records) => {
+                            if (!lastCandidate) {
+                                const failure = detectGeminiFailureInMutations(records);
+                                if (failure) {
+                                    finish(new Error(`GEMINI_STOPPED_RESPONDING:${failure}`));
+                                    return;
+                                }
+                            }
                             tryExtract();
                         });
 
@@ -536,7 +613,13 @@ function executeGeminiPrompt(tabId, prompt, settings, requestId, images) {
                         // Also poll frequently because some Gemini UI updates are virtualized and do not always emit useful mutations.
                         pollTimer = setInterval(() => {
                             tryExtract();
-                        }, 250);
+                        }, 120);
+                        failTimer = setInterval(() => {
+                            if (lastCandidate) return;
+                            const failure = detectGeminiFailureSignal();
+                            if (!failure) return;
+                            finish(new Error(`GEMINI_STOPPED_RESPONDING:${failure}`));
+                        }, 60);
                     });
                 },
                 args: [prompt, settings, startMarker, endMarker, normalizedImages]
@@ -666,7 +749,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const tab = await getOrCreateGeminiTab();
             const mergedSettings = { ...DEFAULT_SCIENCE_SETTINGS, ...(message.settings || {}) };
             const images = normalizeScienceImages(message.images);
-            const raw = await executeGeminiPrompt(tab.id, message.prompt, mergedSettings, message.requestId, images);
+            const sourceTabId = sender?.tab?.id || null;
+            const autoTabSwitch = mergedSettings.autoTabSwitch !== false;
+            if (autoTabSwitch) {
+                await focusTab(tab.id);
+            }
+            let raw = '';
+            try {
+                raw = await executeGeminiPrompt(tab.id, message.prompt, mergedSettings, message.requestId, images);
+            } finally {
+                if (autoTabSwitch && sourceTabId) {
+                    await focusTab(sourceTabId);
+                }
+            }
             let data = null;
             let parseError = null;
             try {

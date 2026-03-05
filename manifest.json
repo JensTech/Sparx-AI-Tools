@@ -50,7 +50,8 @@
         {
             "resources": [
                 "cdn/img/*.svg",
-                "cdn/img/*.png"
+                "cdn/img/*.png",
+                "cdn/css/*.css"
             ],
             "matches": [
                 "https://*.sparx-learning.com/*"
