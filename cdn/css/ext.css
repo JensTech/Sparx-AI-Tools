@@ -25,6 +25,14 @@
 
     box-shadow: 0 2px 6px #00000026;
 }
+
+.book-copy-btn-book {
+    position: fixed;
+    top: 65px;
+    right: 25px;
+    z-index: 1000;
+}
+
 .book-copy-btn-question {
     right: 45px !important;
 }
